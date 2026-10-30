@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# Test and coverage output
+.pytest_cache/
+coverage/
+htmlcov/
+
+# Environment variables
+.env
+.env.*
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+# MacOS files
+.DS_Store
+# Windows files
+Thumbs.db
+Desktop.ini
