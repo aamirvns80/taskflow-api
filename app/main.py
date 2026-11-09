@@ -3,7 +3,6 @@ from fastapi import Depends, FastAPI, HTTPException
 from app.database import (
     DATABASE_PATH,
     add_task,
-    create_tables,
     delete_task_by_id,
     get_all_tasks,
     get_task_by_id,
@@ -17,7 +16,6 @@ def get_db_path():
     return DATABASE_PATH
 
 tasks= []
-
 app = FastAPI(
     title="TaskFlow API",
     description="A task management API built with Python.",
@@ -50,8 +48,8 @@ def get_tasks(db_path=Depends(get_db_path)):
              ]
 
 @app.get("/tasks/{task_id}")
-def get_task(task_id: int):
-    result = get_task_by_id(task_id)
+def get_task(task_id: int,db_path=Depends(get_db_path)):
+    result = get_task_by_id(task_id,db_path)
     if result is None:
         raise HTTPException(status_code=404,
                                 detail="Task not found")
@@ -67,15 +65,15 @@ def get_task(task_id: int):
     
     
 @app.put("/tasks/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data:TaskUpdate):
-    rows_update = update_task_status(task_id,task_data.completed)
+def update_task(task_id:int,task_data:TaskUpdate,db_path=Depends(get_db_path)):
+    rows_update = update_task_status(task_id,task_data.completed,db_path)
     if rows_update ==0:
         raise HTTPException(
             status_code=404,
             detail="Task not found"
         )
         
-    updated_rows = get_task_by_id(task_id)
+    updated_rows = get_task_by_id(task_id,db_path)
     updated_rows={
         "id":updated_rows["id"],
         "title":updated_rows["title"],
@@ -86,15 +84,9 @@ def update_task(task_id:int,task_data:TaskUpdate):
     
     return updated_rows
    
-        
-        
-        
-        
-   
-        
 @app.delete("/tasks/{task_id}")
-def delete_task(task_id:int):
-    row_deleted = delete_task_by_id(task_id)
+def delete_task(task_id:int,db_path=Depends(get_db_path)):
+    row_deleted = delete_task_by_id(task_id,db_path)
     
     if row_deleted ==0:
           raise HTTPException(
@@ -105,18 +97,14 @@ def delete_task(task_id:int):
         "message":"Task deleted successfully"
     }
         
-    
-        
-  
-    
-    
 @app.post("/tasks",response_model=TaskResponse)
-def create_task(task: TaskCreate):
+def create_task(task: TaskCreate,db_path=Depends(get_db_path)):
     
     task_id = add_task(
         task.title,
         task.description,
-        task.completed
+        task.completed,
+        db_path
     )
     
     return {
@@ -126,10 +114,8 @@ def create_task(task: TaskCreate):
         "completed": task.completed
     }
     
-    
-    
 @app.patch("/tasks/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data:TaskPatch):
+def update_task(task_id:int,task_data:TaskPatch,db_path=Depends(get_db_path)):
     updates = task_data.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(
@@ -137,7 +123,7 @@ def update_task(task_id:int,task_data:TaskPatch):
             detail="No fields provided for update"
         )
         
-    rows_updated = patch_task(task_id,updates)
+    rows_updated = patch_task(task_id,updates,db_path)
     if rows_updated ==0:
         raise HTTPException(
             status_code=404,
@@ -145,7 +131,7 @@ def update_task(task_id:int,task_data:TaskPatch):
         )
         
         
-    updated_task = get_task_by_id(task_id)
+    updated_task = get_task_by_id(task_id,db_path)
     
     return{
         "id": updated_task["id"],
