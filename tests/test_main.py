@@ -14,7 +14,7 @@ def test_create_task(client):
         "completed": False
     })
     
-    assert response.status_code ==200
+    assert response.status_code ==201
     data = response.json()
     
     assert data["title"] == "Learn FastAPI"
