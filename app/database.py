@@ -8,8 +8,8 @@ def get_connection(db_path=DATABASE_PATH):
     connection.row_factory=sqlite3.Row
     return connection
 
-def create_tables():
-    connection = get_connection()
+def create_tables(db_path=DATABASE_PATH):
+    connection = get_connection(db_path)
     
     connection.execute("""
                        CREATE TABLE IF NOT EXISTS tasks(

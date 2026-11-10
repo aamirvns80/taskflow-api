@@ -10,6 +10,7 @@ from app.database import (
     get_connection,
     get_task_by_id,
     update_task_status,
+    patch_task
 )
 
 
@@ -78,6 +79,52 @@ def test_delete_task(test_db):
     assert result is None
     assert rows_deleted == 1
    
+def test_get_all_tasks(test_db):
+    add_task("Task1","description1",False, test_db)
+    add_task("Task2","description2",True,test_db)
+    tasks = get_all_tasks(test_db)
+    assert len(tasks)==2
+    
+
+def test_patch_task(test_db):
+    task_id =add_task("Learn Python","Practice coding",False,test_db)
+    updates = {"title":"Learn FastAPI"}
+    rows_updated = patch_task(task_id,updates,test_db)
+    result = get_task_by_id(task_id,test_db)
+    
+    assert result["title"]=="Learn FastAPI"
+    assert result["description"] =="Practice coding"
+    assert result["completed"] == 0
+    
+    
+def test_patch_task_empty_updates(test_db):
+    task_id =add_task(
+        "Learn Python",
+        "Practice coding",
+        False,
+        test_db
+    )
+    
+    with pytest.raises(ValueError):
+        patch_task(task_id,{},test_db)
+    
+def test_patch_task_invalid_field(test_db):
+    task_id =add_task(
+        "Learn Pthon",
+        "Practice coding",
+        False,
+        test_db
+    )
+    
+    updates ={"invalid_column":"Hello"}
+    with pytest.raises(ValueError):
+        patch_task(task_id,updates,test_db)
+        
+def test_patch_task_nonexistent_id(test_db):
+    rows_updated=patch_task(999,{"title":"New title"},test_db)
+    assert rows_updated==0
+    
+    
     
     
     
