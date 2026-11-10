@@ -9,8 +9,8 @@ from app.database import (
     get_all_tasks,
     get_connection,
     get_task_by_id,
+    patch_task,
     update_task_status,
-    patch_task
 )
 
 
