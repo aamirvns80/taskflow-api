@@ -125,6 +125,63 @@ def test_patch_task_nonexistent_id(test_db):
     assert rows_updated==0
     
     
+
+def test_rollback_update(test_db):
+    task_id = add_task(
+        "Learn Python",
+        "Practice coding",
+        False,
+        test_db
+    )
+    
+    connection =get_connection(test_db)
+    
+    try:
+        connection.execute(
+            "UPDATE tasks SET completed =? WHERE id=?",
+            (1,task_id)
+        )
+        
+        connection.rollback()
+        
+    finally:
+        connection.close()
+        
+        original_row = get_task_by_id(task_id,test_db)
+        
+        assert original_row["completed"]==0
+        
+def test_rollback_on_exception(test_db):
+    task_id = add_task(title="Learn python",
+                       description="Practice coding",
+                       completed=False,
+                       db_path=test_db)
+    
+    connection = get_connection(test_db)
+    with pytest.raises(ValueError,match="Simulated database failure"):
+    
+        try:
+            connection.execute(
+                "UPDATE tasks SET completed =? WHERE id=?",
+                (1,task_id)
+            )
+            raise ValueError("Simulated database failure")
+        except Exception:
+            connection.rollback()
+            raise
+            
+        finally:
+            connection.close()
+            
+    original_row = get_task_by_id(task_id,test_db)
+        
+    assert original_row["completed"] ==0
+            
+    
+    
+        
+    
+    
     
     
     
