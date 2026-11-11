@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.database import (
-    add_task,
-    delete_task_by_id,
-    get_all_tasks,
-    get_task_by_id,
-    patch_task,
-    update_task_status,
-)
 from app.dependencies import get_db_path
 from app.schemas import TaskCreate, TaskPatch, TaskResponse, TaskUpdate
+from app.services.task_service import (
+    create_task_service,
+    delete_task_service,
+    get_all_tasks_service,
+    get_task_service,
+    patch_task_service,
+    update_task_service,
+)
 
 router= APIRouter()
 
@@ -17,7 +17,7 @@ router= APIRouter()
 
 @router.get("/",response_model=list[TaskResponse])
 def get_tasks(db_path=Depends(get_db_path)):
-    rows = get_all_tasks(db_path)
+    rows = get_all_tasks_service(db_path)
     return [{
         "id":row["id"],
         "title":row["title"],
@@ -30,32 +30,26 @@ def get_tasks(db_path=Depends(get_db_path)):
 
 @router.post("/",response_model=TaskResponse,status_code=201)
 def create_task(task:TaskCreate,db_path = Depends(get_db_path)):
-    task_id = add_task(
-        task.title,
-        task.description,
-        task.completed,
-        db_path
-    )
-
-    task= get_task_by_id(task_id,db_path)
-
-    if task is None:
+    created_task =create_task_service(task,db_path)
+    if created_task is None:
         raise HTTPException(
-            status_code = 500,
-            detail="Created task could not be retrieved"
+            status_code=500,
+            detail="Created task cold not be retrieved"
         )
-
+        
     return {
-        "id": task["id"],
-        "title": task["title"],
-        "description": task["description"],
-        "completed": bool(task["completed"])
+        "id": created_task["id"],
+        "title":created_task["title"],
+        "description":created_task["description"],
+        "completed":bool(created_task["completed"])
     }
+   
 
+    
 
 @router.get("/{task_id}",response_model=TaskResponse)
 def get_task(task_id: int,db_path=Depends(get_db_path)):
-    result = get_task_by_id(task_id,db_path)
+    result = get_task_service(task_id,db_path)
     if result is None:
         raise HTTPException(
             status_code=404,
@@ -72,7 +66,7 @@ def get_task(task_id: int,db_path=Depends(get_db_path)):
 
 @router.put("/{task_id}",response_model=TaskResponse)
 def update_task(task_id:int,task_data:TaskUpdate,db_path = Depends(get_db_path)):
-    rows_update = update_task_status(task_id,task_data.completed,db_path)
+    rows_update = update_task_service(task_id,task_data,db_path)
     if rows_update==0:
         raise HTTPException(
             status_code=404,
@@ -80,7 +74,7 @@ def update_task(task_id:int,task_data:TaskUpdate,db_path = Depends(get_db_path))
         )
 
 
-    updated_rows=get_task_by_id(task_id,db_path)
+    updated_rows=get_task_service(task_id,db_path)
 
     return{
         "id":updated_rows["id"],
@@ -99,7 +93,7 @@ def update_task(task_id:int,task_data: TaskPatch,db_path = Depends(get_db_path))
             detail="No fields provided for update"
         )
 
-    rows_updated=patch_task(task_id,updates,db_path)
+    rows_updated=patch_task_service(task_id,updates,db_path)
 
     if rows_updated==0:
         raise HTTPException(
@@ -107,7 +101,7 @@ def update_task(task_id:int,task_data: TaskPatch,db_path = Depends(get_db_path))
             detail="Task not found"
         )
 
-    updated_task=get_task_by_id(task_id,db_path)
+    updated_task=get_task_service(task_id,db_path)
 
     return{
         "id":updated_task["id"],
@@ -118,7 +112,7 @@ def update_task(task_id:int,task_data: TaskPatch,db_path = Depends(get_db_path))
 
 @router.delete("/{task_id}")
 def delete_task(task_id: int,db_path = Depends(get_db_path)):
-    rows_deleted = delete_task_by_id(task_id,db_path)
+    rows_deleted = delete_task_service(task_id,db_path)
     if rows_deleted==0:
         raise HTTPException(
             status_code=404,
