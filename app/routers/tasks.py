@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies import get_db_path
+from app.routers import tasks
 from app.schemas import TaskCreate, TaskPatch, TaskResponse, TaskUpdate
 from app.services.task_service import (
     create_task_service,
@@ -12,8 +15,6 @@ from app.services.task_service import (
 )
 
 router= APIRouter()
-
-
 
 @router.get("/",response_model=list[TaskResponse])
 def get_tasks(db_path=Depends(get_db_path)):
@@ -34,18 +35,15 @@ def create_task(task:TaskCreate,db_path = Depends(get_db_path)):
     if created_task is None:
         raise HTTPException(
             status_code=500,
-            detail="Created task cold not be retrieved"
+            detail="Created task could not be retrieved"
         )
-        
+
     return {
         "id": created_task["id"],
         "title":created_task["title"],
         "description":created_task["description"],
         "completed":bool(created_task["completed"])
     }
-   
-
-    
 
 @router.get("/{task_id}",response_model=TaskResponse)
 def get_task(task_id: int,db_path=Depends(get_db_path)):
@@ -123,3 +121,4 @@ def delete_task(task_id: int,db_path = Depends(get_db_path)):
     return {
         "message": "Task deleted successfully"
     }
+

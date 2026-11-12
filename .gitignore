@@ -24,3 +24,8 @@ htmlcov/
 Thumbs.db
 Desktop.ini
 taskflow.db
+
+# Test and coverage artifacts
+.coverage
+htmlcov/
+test.db
