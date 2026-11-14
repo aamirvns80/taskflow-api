@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from app.main import global_exception_handler
 from app.routers import tasks
 
 #client = TestClient(app)
@@ -212,6 +213,34 @@ def test_put_service_returns_zero(client):
         })
         assert response.status_code ==404
         assert response.json()["detail"]=="Task not found"
+
+
+def test_global_exception_handler():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    test_app = FastAPI()
+
+    test_app.add_exception_handler(
+        Exception,
+        global_exception_handler
+    )
+
+    @test_app.get("/test-error")
+    def trigger_error():
+        raise RuntimeError("Something went wrong")
+
+    test_client = TestClient(
+        test_app,
+        raise_server_exceptions=False
+    )
+
+    response = test_client.get("/test-error")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Internal Server Error"
+    }
 
 
 

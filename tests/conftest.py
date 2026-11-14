@@ -4,7 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.database import get_connection
-from app.main import app, get_db_path
+from app.dependencies import get_db_path
+from app.main import app
 
 
 @pytest.fixture

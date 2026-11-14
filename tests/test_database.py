@@ -1,4 +1,5 @@
-from unittest import result
+import logging
+import sqlite3
 from unittest.mock import Mock, patch
 
 import pytest
@@ -266,6 +267,25 @@ def test_create_tables_closes_connection_on_error():
 def test_get_db_path():
     result = get_db_path()
     assert result == DATABASE_PATH
+
+
+def test_database_error_is_logged(tmp_path, caplog):
+
+    from app.database import add_task
+
+    db_path = tmp_path / "empty.db"
+
+    with caplog.at_level(logging.ERROR):
+
+        with pytest.raises(sqlite3.OperationalError):
+            add_task(
+                title="Test task",
+                description="Trigger database error",
+                completed=False,
+                db_path=db_path
+            )
+    assert "Failed to add task" in caplog.text
+    assert "no such table: tasks" in caplog.text
 
 
 
