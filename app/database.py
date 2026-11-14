@@ -1,5 +1,8 @@
+import logging
 import sqlite3
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 DATABASE_PATH = Path(__file__).resolve().parent.parent/ "taskflow.db"
 
@@ -23,6 +26,7 @@ def create_tables(db_path=DATABASE_PATH):
         connection.commit()
     except Exception:
         connection.rollback()
+        logger.exception("Failed to create tables")
         raise
     finally:
         connection.close()
@@ -43,6 +47,7 @@ def add_task(title, description,completed,db_path=DATABASE_PATH):
 
     except Exception:
         connection.rollback()
+        logger.exception("Failed to add task")
         raise
     finally:
         connection.close()
@@ -86,9 +91,8 @@ def update_task_status(task_id,completed,db_path=DATABASE_PATH):
         return cursor.rowcount
     except Exception:
         connection.rollback()
+        logger.exception("Failed to update task status")
         raise
-
-
     finally:
         connection.close()
 
@@ -102,10 +106,10 @@ def delete_task_by_id(task_id,db_path=DATABASE_PATH):
         return cursor.rowcount
     except Exception:
         conn.rollback()
+        logger.exception("Failed to delete task")
         raise
 
     finally:
-
         conn.close()
 
 
@@ -135,6 +139,7 @@ def patch_task(task_id,updates,db_path=DATABASE_PATH):
         return rows_updated
     except Exception:
         connection.rollback()
+        logger.exception("Failed to patch task")
         raise
 
     finally:

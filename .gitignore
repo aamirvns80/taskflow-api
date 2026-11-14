@@ -29,3 +29,6 @@ taskflow.db
 .coverage
 htmlcov/
 test.db
+
+# Application logs
+logs/
