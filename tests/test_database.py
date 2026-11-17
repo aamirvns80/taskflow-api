@@ -213,8 +213,8 @@ def test_update_task_rolls_back_on_error():
                 db_path="test.db"
             )
 
-            mock_connection.rollback.assert_called_once()
-            mock_connection.close.assert_called_once()
+        mock_connection.rollback.assert_called_once()
+        mock_connection.close.assert_called_once()
 
 
 def test_delete_task_rolls_back_on_error():
@@ -229,8 +229,8 @@ def test_delete_task_rolls_back_on_error():
                 db_path="test.db"
             )
 
-            mock_connection.rollback.assert_called_once()
-            mock_connection.close.assert_called_once()
+        mock_connection.rollback.assert_called_once()
+        mock_connection.close.assert_called_once()
 
 def test_patch_task_rolls_back_on_error():
     with patch("app.database.get_connection") as mock_get_connection:

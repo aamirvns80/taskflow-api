@@ -3,5 +3,6 @@ uvicorn[standard]
 pytest
 httpx
 pydantic-settings==2.12.0
+SQLAlchemy==2.0.51
 
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel,model_validator,StrictBool
+from pydantic import BaseModel, ConfigDict,StrictBool,model_validator
 
 class TaskCreate(BaseModel):
     title:str
@@ -7,6 +7,7 @@ class TaskCreate(BaseModel):
     
     
 class TaskResponse(BaseModel):
+    model_config =ConfigDict(from_attributes=True)
     id : int
     title: str
     description: str

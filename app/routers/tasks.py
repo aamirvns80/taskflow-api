@@ -1,124 +1,107 @@
-from unittest.mock import patch
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from app.dependencies import get_db_path
-from app.routers import tasks
+from app.db_dependencies import get_db
+from app.models import Task
 from app.schemas import TaskCreate, TaskPatch, TaskResponse, TaskUpdate
-from app.services.task_service import (
-    create_task_service,
-    delete_task_service,
-    get_all_tasks_service,
-    get_task_service,
-    patch_task_service,
-    update_task_service,
+from app.services.task_orm_service import (
+    create_task_service as create_task_orm_service,
+)
+from app.services.task_orm_service import (
+    delete_task_service as delete_task_orm_service,
+)
+from app.services.task_orm_service import (
+    get_all_tasks_service as get_all_tasks_orm_service,
+)
+from app.services.task_orm_service import (
+    get_task_service as get_task_orm_service,
+)
+from app.services.task_orm_service import (
+    patch_task_service as patch_task_orm_service,
+)
+from app.services.task_orm_service import (
+    update_task_by_id_service,
 )
 
-router= APIRouter()
-
-@router.get("/",response_model=list[TaskResponse])
-def get_tasks(db_path=Depends(get_db_path)):
-    rows = get_all_tasks_service(db_path)
-    return [{
-        "id":row["id"],
-        "title":row["title"],
-        "description":row["description"],
-        "completed":bool(row["completed"])
-
-    }
-            for row in rows]
+router = APIRouter()
 
 
-@router.post("/",response_model=TaskResponse,status_code=201)
-def create_task(task:TaskCreate,db_path = Depends(get_db_path)):
-    created_task =create_task_service(task,db_path)
+@router.get("/", response_model=list[TaskResponse])
+def get_tasks(db: Session = Depends(get_db)):
+    return get_all_tasks_orm_service(db)
+
+
+
+@router.post("/", response_model=TaskResponse, status_code=201)
+def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+    new_task = Task(**task.model_dump())
+
+    created_task = create_task_orm_service(db, new_task)
+
     if created_task is None:
         raise HTTPException(
             status_code=500,
-            detail="Created task could not be retrieved"
+            detail="Created task could not be retrieved",
         )
 
-    return {
-        "id": created_task["id"],
-        "title":created_task["title"],
-        "description":created_task["description"],
-        "completed":bool(created_task["completed"])
-    }
-
-@router.get("/{task_id}",response_model=TaskResponse)
-def get_task(task_id: int,db_path=Depends(get_db_path)):
-    result = get_task_service(task_id,db_path)
-    if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
-
-    return{
-        "id":result["id"],
-        "title": result["title"],
-        "description":result["description"],
-        "completed":bool(result["completed"])
-    }
+    return created_task
 
 
-@router.put("/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data:TaskUpdate,db_path = Depends(get_db_path)):
-    rows_update = update_task_service(task_id,task_data,db_path)
-    if rows_update==0:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
+
+@router.get("/{task_id}", response_model=TaskResponse)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    task = get_task_orm_service(db, task_id)
+
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return task
 
 
-    updated_rows=get_task_service(task_id,db_path)
+@router.put("/{task_id}", response_model=TaskResponse)
+def replace_task(
+    task_id: int,
+    task_data: TaskUpdate,
+    db: Session = Depends(get_db),
+):
+    updates = task_data.model_dump()
 
-    return{
-        "id":updated_rows["id"],
-        "title":updated_rows["title"],
-        "description":updated_rows["description"],
-        "completed":bool(updated_rows["completed"])
-    }
+    updated_task = update_task_by_id_service(db, task_id, updates)
+
+    if updated_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return updated_task
 
 
-@router.patch("/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data: TaskPatch,db_path = Depends(get_db_path)):
-    updates =task_data.model_dump(exclude_unset=True)
+@router.patch("/{task_id}", response_model=TaskResponse)
+def update_task(
+    task_id: int,
+    task_data: TaskPatch,
+    db: Session = Depends(get_db),
+):
+    updates = task_data.model_dump(exclude_unset=True)
+
     if not updates:
         raise HTTPException(
             status_code=400,
-            detail="No fields provided for update"
+            detail="No fields provided for update",
         )
 
-    rows_updated=patch_task_service(task_id,updates,db_path)
+    updated_task = update_task_by_id_service(db, task_id, updates)
 
-    if rows_updated==0:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
+    if updated_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    updated_task=get_task_service(task_id,db_path)
+    return updated_task
 
-    return{
-        "id":updated_task["id"],
-        "title":updated_task["title"],
-        "description":updated_task["description"],
-        "completed":bool(updated_task["completed"])
-    }
 
 @router.delete("/{task_id}")
-def delete_task(task_id: int,db_path = Depends(get_db_path)):
-    rows_deleted = delete_task_service(task_id,db_path)
-    if rows_deleted==0:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    deleted = delete_task_orm_service(db, task_id)
 
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Task not found")
 
-    return {
-        "message": "Task deleted successfully"
-    }
-
+    return {"message": "Task deleted successfully"}
