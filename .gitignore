@@ -32,3 +32,11 @@ test.db
 
 # Application logs
 logs/
+# Project virtual environment
+.venv/
+
+# Database backup
+taskflow_backup_before_alembic.db
+
+# Temporary migration test database
+migration_test.db
