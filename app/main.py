@@ -1,146 +1,63 @@
-from fastapi import Depends, FastAPI, HTTPException
+import logging
+from contextlib import asynccontextmanager
 
-from app.database import (
-    DATABASE_PATH,
-    add_task,
-    delete_task_by_id,
-    get_all_tasks,
-    get_task_by_id,
-    patch_task,
-    update_task_status,
-)
-from app.schemas import TaskCreate, TaskPatch, TaskResponse, TaskUpdate
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
+from app.config import settings
+from app.logging_config import configure_logging
+from app.routers import tasks
 
-def get_db_path():
-    return DATABASE_PATH
+configure_logging()
 
-tasks= []
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("TaskFlow API started")
+    try:
+        yield
+    finally:
+        logger.info("TaskFlow API shutting down")
+        
 app = FastAPI(
-    title="TaskFlow API",
+    title=settings.app_name,
     description="A task management API built with Python.",
-    version="0.1.0")
+    version="0.1.0",
+    lifespan=lifespan
+)
+
+app.include_router(tasks.router,prefix="/tasks")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unexpected error occurred")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail":"Internal Server Error"
+        }
+    )
+    
+
 
 @app.get("/")
 def read_root():
     return {
         "message":"Welcome to TaskFlow API"
     }
-    
+
 @app.get("/health")
 def health_check():
     return{
         "status":"healthy"
     }
-@app.get("/tasks",response_model=list[TaskResponse])
-def get_tasks(db_path=Depends(get_db_path)):
-    rows = get_all_tasks(db_path)
-    
-    return  [{
-        "id": row[0],
-        "title":row[1],
-        "description":row[2],
-        "completed":bool(row[3])
-        
-    }
-             for row in rows
-                 
-             ]
 
-@app.get("/tasks/{task_id}")
-def get_task(task_id: int,db_path=Depends(get_db_path)):
-    result = get_task_by_id(task_id,db_path)
-    if result is None:
-        raise HTTPException(status_code=404,
-                                detail="Task not found")
-   
-    result={
-        "id":result["id"],
-        "title":result["title"],
-        "description":result["description"],
-        "completed":result["completed"]
-    }
-    return result
-        
-    
-    
-@app.put("/tasks/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data:TaskUpdate,db_path=Depends(get_db_path)):
-    rows_update = update_task_status(task_id,task_data.completed,db_path)
-    if rows_update ==0:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
-        
-    updated_rows = get_task_by_id(task_id,db_path)
-    updated_rows={
-        "id":updated_rows["id"],
-        "title":updated_rows["title"],
-        "description":updated_rows["description"],
-        "completed": updated_rows["completed"]
-        
-    }
-    
-    return updated_rows
-   
-@app.delete("/tasks/{task_id}")
-def delete_task(task_id:int,db_path=Depends(get_db_path)):
-    row_deleted = delete_task_by_id(task_id,db_path)
-    
-    if row_deleted ==0:
-          raise HTTPException(
-                status_code=404,
-                detail="Task not found"
-            )
-    return {
-        "message":"Task deleted successfully"
-    }
-        
-@app.post("/tasks",response_model=TaskResponse)
-def create_task(task: TaskCreate,db_path=Depends(get_db_path)):
-    
-    task_id = add_task(
-        task.title,
-        task.description,
-        task.completed,
-        db_path
-    )
-    
-    return {
-        "id": task_id,
-        "title": task.title,
-        "description": task.description,
-        "completed": task.completed
-    }
-    
-@app.patch("/tasks/{task_id}",response_model=TaskResponse)
-def update_task(task_id:int,task_data:TaskPatch,db_path=Depends(get_db_path)):
-    updates = task_data.model_dump(exclude_unset=True)
-    if not updates:
-        raise HTTPException(
-            status_code=400,
-            detail="No fields provided for update"
-        )
-        
-    rows_updated = patch_task(task_id,updates,db_path)
-    if rows_updated ==0:
-        raise HTTPException(
-            status_code=404,
-            detail="Task not found"
-        )
-        
-        
-    updated_task = get_task_by_id(task_id,db_path)
-    
-    return{
-        "id": updated_task["id"],
-        "title":updated_task["title"],
-        "description":updated_task["description"],
-        "completed":bool(updated_task["completed"])
-    }
-        
-    
-    
-    
-    
+
+
+
+
+
+
+
+
