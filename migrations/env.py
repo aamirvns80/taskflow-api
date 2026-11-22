@@ -25,6 +25,18 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    """Skip explicitly marked model columns during autogeneration."""
+    if (
+        type_ == "column"
+        and not reflected
+        and object.info.get("skip_autogenerate", False)
+    ):
+        return False
+
+    return True
+
+
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
 
@@ -34,6 +46,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         compare_type=False,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -52,6 +65,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=False,
+            include_object=include_object,
         )
 
         with context.begin_transaction():

@@ -40,3 +40,6 @@ taskflow_backup_before_alembic.db
 
 # Temporary migration test database
 migration_test.db
+
+alembic_test.db
+inspect_db.py

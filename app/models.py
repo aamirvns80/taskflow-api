@@ -10,7 +10,11 @@ class Base(DeclarativeBase):
 class Task(Base):
     __tablename__ = "tasks"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+    primary_key=True,
+    autoincrement=True,
+    info={"skip_autogenerate": True},
+)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     completed: Mapped[bool] = mapped_column(
